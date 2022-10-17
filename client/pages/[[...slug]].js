@@ -1,16 +1,28 @@
-import delve from "dlv";
-import ErrorPage from "next/error";
-import Layout from "../components/layout";
-import BlockManager from "../components/shared/BlockManager";
-import { getData, handleRedirection } from "../utils";
-import { getLocalizedParams } from "../utils/localize";
+import delve from 'dlv';
+import ErrorPage from 'next/error';
+import Layout from '../components/layout';
+import BlockManager from '../components/shared/BlockManager';
+import { getData, getStrapiURL, handleRedirection } from '../utils';
+import { getLocalizedParams } from '../utils/localize';
 
-const Universals = ({ global, pageData, preview }) => {
+const test = async () => {
+  const apiURL = getStrapiURL('/pages/');
+  const res = await fetch(apiURL);
+  const pages = await res.json();
+
+  const paths = pages.data.map((page) => ({
+    params: { slug: [page.attributes.slug], locale: 'en' },
+  }));
+  console.log(paths);
+};
+
+const Universals = ({ global, pageData, preview, slugs }) => {
+  console.log(slugs);
   if (pageData === null) {
     return <ErrorPage statusCode={404} />;
   }
 
-  const blocks = delve(pageData, "attributes.blocks");
+  const blocks = delve(pageData, 'attributes.blocks');
   return (
     <Layout global={global} pageData={pageData} type="pages" preview={preview}>
       {blocks && <BlockManager blocks={blocks} />}
@@ -18,19 +30,31 @@ const Universals = ({ global, pageData, preview }) => {
   );
 };
 
-// This gets called on every request
-export async function getServerSideProps(context) {
-  const { slug, locale } = getLocalizedParams(context.query);
+export async function getStaticPaths() {
+  const apiURL = getStrapiURL('/pages/');
+  const res = await fetch(apiURL);
+  const pages = await res.json();
 
+  const paths = pages.data.map((page) => ({
+    params: { slug: [page.attributes.slug], lang: 'en' },
+  }));
+
+  return { paths, fallback: false };
+}
+
+// This gets called on every request
+export async function getStaticProps(context) {
+  const { slug, locale } = getLocalizedParams(context.params);
   try {
     const data = getData(
       slug,
       locale,
-      "page",
-      "collectionType",
+      'page',
+      'collectionType',
       context.preview
     );
-    const res = await fetch(delve(data, "data"));
+
+    const res = await fetch(delve(data, 'data'));
     const json = await res.json();
 
     if (!json.data.length) {
@@ -38,7 +62,11 @@ export async function getServerSideProps(context) {
     }
 
     return {
-      props: { pageData: json.data[0], preview: context.preview || null },
+      props: {
+        pageData: json.data[0],
+        preview: context.preview || null,
+        slugs: data,
+      },
     };
   } catch (error) {
     return {
