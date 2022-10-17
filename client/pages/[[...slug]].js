@@ -5,19 +5,7 @@ import BlockManager from '../components/shared/BlockManager';
 import { getData, getStrapiURL, handleRedirection } from '../utils';
 import { getLocalizedParams } from '../utils/localize';
 
-const test = async () => {
-  const apiURL = getStrapiURL('/pages/');
-  const res = await fetch(apiURL);
-  const pages = await res.json();
-
-  const paths = pages.data.map((page) => ({
-    params: { slug: [page.attributes.slug], locale: 'en' },
-  }));
-  console.log(paths);
-};
-
-const Universals = ({ global, pageData, preview, slugs }) => {
-  console.log(slugs);
+const Universals = ({ global, pageData, preview }) => {
   if (pageData === null) {
     return <ErrorPage statusCode={404} />;
   }
@@ -65,7 +53,6 @@ export async function getStaticProps(context) {
       props: {
         pageData: json.data[0],
         preview: context.preview || null,
-        slugs: data,
       },
     };
   } catch (error) {
